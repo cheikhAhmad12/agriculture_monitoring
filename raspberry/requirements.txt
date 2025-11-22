@@ -1,0 +1,8 @@
+paho-mqtt>=1.6.1
+PyYAML>=6.0
+dronekit>=2.9.2
+pymavlink>=2.4.40
+numpy>=1.24
+Pillow>=9.4
+# Hardware GPIO is only available on Raspberry Pi, keep optional fallback in code.
+RPi.GPIO; platform_system=="Linux" and platform_machine=="armv7l"

@@ -1,0 +1,41 @@
+mqtt:
+  broker: 192.168.1.10
+  port: 1883
+  username: ""
+  password: ""
+  client_id: agriculture-drone
+  keepalive: 60
+  topics:
+    telemetry: agriculture/drone/telemetry
+    analysis: agriculture/drone/analysis
+    irrigation_command: agriculture/irrigation/command
+    irrigation_status: agriculture/irrigation/status
+
+drone:
+  autopilot_connection: udp:0.0.0.0:14550  # MAVLink endpoint exposed by Navio2/ArduPilot
+  capture_dir: /home/pi/data/captures
+  analysis_dir: /home/pi/data/analysis
+  camera:
+    rgb_path: /home/pi/data/captures/rgb.jpg
+    nir_path: /home/pi/data/captures/nir.jpg
+    width: 1280
+    height: 720
+  ndvi:
+    stress_threshold: 0.25
+
+irrigation:
+  publish_interval_seconds: 10
+  max_parallel_valves: 2
+  valves:
+    - id: parcel-1
+      gpio_pin: 17
+      flow_lpm: 10.0
+    - id: parcel-2
+      gpio_pin: 27
+      flow_lpm: 10.0
+    - id: parcel-3
+      gpio_pin: 22
+      flow_lpm: 8.0
+    - id: parcel-4
+      gpio_pin: 23
+      flow_lpm: 8.0
