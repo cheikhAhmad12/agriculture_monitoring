@@ -9,6 +9,7 @@ from typing import Dict, Optional
 from ..utils.mqtt_client import MQTTClient
 from .analysis import run_ndvi_pipeline
 from .autopilot import AutopilotClient
+from .inference import CropStressInference
 
 
 class DroneService:
@@ -23,6 +24,7 @@ class DroneService:
         self.autopilot = autopilot
         self.topics = config["mqtt"]["topics"]
         self.drone_cfg = config["drone"]
+        self.inference = CropStressInference(self.drone_cfg.get("ai", {}))
 
     def run_capture_and_publish(self, rgb_path: str, nir_path: str):
         resize = (
@@ -36,10 +38,12 @@ class DroneService:
             stress_threshold=float(self.drone_cfg["ndvi"]["stress_threshold"]),
         )
         telemetry = self.autopilot.read_telemetry()
+        ai_summary = self.inference.predict(ndvi_summary, telemetry)
         payload = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "telemetry": telemetry,
             "ndvi": ndvi_summary,
+            "ai": ai_summary,
         }
         logging.info("Publishing NDVI analysis to %s", self.topics["analysis"])
         self.mqtt.publish(self.topics["analysis"], payload)

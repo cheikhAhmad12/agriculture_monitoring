@@ -20,7 +20,8 @@ This document summarizes what the Raspberry-side code does, how it is structured
   - `autopilot.py`: Thin wrapper around DroneKit connect/read telemetry. Falls back to mocked payload if unavailable.
   - `camera.py`: Loads RGB and NIR images, resizes, prepares arrays.
   - `analysis.py`: Computes NDVI, summarizes stats (mean/min/max, stress ratio).
-  - `service.py`: Orchestrates a capture cycle: NDVI + telemetry published over MQTT.
+  - `inference.py`: Rule-based AI inference from NDVI + telemetry; outputs risk/zone/action.
+  - `service.py`: Orchestrates a capture cycle: NDVI + telemetry + AI summary published over MQTT.
 - `raspberry/irrigation/`
   - `controller.py`: MQTT listener for irrigation commands; schedules valve activation threads; publishes status.
 - `raspberry/utils/`
@@ -33,7 +34,8 @@ This document summarizes what the Raspberry-side code does, how it is structured
    - Inputs: RGB path, NIR path.
    - NDVI pipeline: `camera.py` -> `analysis.py` -> summary dict.
    - Telemetry: `autopilot.py` reads ArduPilot via connection string (e.g., `udp:0.0.0.0:14550`). If not connected, returns `{"status": "disconnected"}`.
-   - Output MQTT topic (configurable): `mqtt.topics.analysis` with `{timestamp, telemetry, ndvi:{mean,min,max,stress_ratio}}`.
+   - AI inference: `inference.py` combines NDVI summary + telemetry (`battery`) to estimate risk.
+   - Output MQTT topic (configurable): `mqtt.topics.analysis` with `{timestamp, telemetry, ndvi:{mean,min,max,stress_ratio}, ai:{enabled,risk_score,zone_label,recommended_action,reasons}}`.
    - Telemetry-only publishing: `service.publish_telemetry_only()` can be reused if needed.
 
 2) **Irrigation controller (`irrigation`)**
@@ -53,13 +55,18 @@ This document summarizes what the Raspberry-side code does, how it is structured
 - `drone.autopilot_connection`: MAVLink/DroneKit endpoint from Navio2 ArduPilot (e.g., `udp:0.0.0.0:14550`).
 - `drone.camera`: capture locations and resize dimensions for NDVI.
 - `drone.ndvi.stress_threshold`: NDVI cutoff below which pixels count toward `stress_ratio`.
+- `drone.ai`: rule-based inference settings.
+  - `enabled`: enable/disable AI output.
+  - `weights`: linear score weights (`stress_ratio`, `low_ndvi`, `battery_penalty`).
+  - `thresholds`: decision cutoffs for `watch`/`critical` and low NDVI/battery criteria.
+  - `actions`: zone-to-action mapping in published output.
 - `irrigation.valves`: list of valves with `id` (parcel name), `gpio_pin` (BCM), and `flow_lpm` (liters/min).
 - `irrigation.max_parallel_valves`: limit concurrent activations to protect power/pressure.
 - `irrigation.publish_interval_seconds`: how often to broadcast valve status.
 
 ## MQTT contract (defaults)
 - Publish:
-  - `agriculture/drone/analysis`: `{timestamp, telemetry, ndvi}`
+  - `agriculture/drone/analysis`: `{timestamp, telemetry, ndvi, ai}`
   - `agriculture/drone/telemetry`: `{timestamp, telemetry}`
   - `agriculture/irrigation/status`: `{timestamp, valves:{id:{is_open,last_opened_at,last_closed_at}}}`
 - Subscribe:

@@ -18,7 +18,7 @@ This folder provides the Raspberry Pi side of the agriculture monitoring project
 2. Adjust `raspberry/config/default_config.yaml` to your Wi-Fi mesh IPs, MQTT broker, image paths, and GPIO pins.
 
 ### Drone cycle
-Compute NDVI from a pair of captures (RGB + NIR) and publish telemetry + summary to MQTT.
+Compute NDVI from a pair of captures (RGB + NIR), run AI stress inference, and publish telemetry + summaries to MQTT.
 ```bash
 python -m raspberry.main --config raspberry/config/default_config.yaml \
   drone-cycle --rgb /home/pi/data/captures/rgb.jpg --nir /home/pi/data/captures/nir.jpg
@@ -42,7 +42,14 @@ python -m raspberry.main --config raspberry/config/default_config.yaml irrigatio
 - Periodic status is published to `mqtt.topics.irrigation_status`.
 
 ## MQTT topic contract
-- `agriculture/drone/analysis`: `{ timestamp, telemetry, ndvi: {mean,min,max,stress_ratio} }`
+- `agriculture/drone/analysis`: `{ timestamp, telemetry, ndvi: {mean,min,max,stress_ratio}, ai: {enabled,risk_score,zone_label,recommended_action,reasons[]} }`
 - `agriculture/drone/telemetry`: `{ timestamp, telemetry }`
 - `agriculture/irrigation/command`: inbound `{ parcel_id, liters }`
 - `agriculture/irrigation/status`: `{ timestamp, valves: {id: {is_open, last_opened_at, last_closed_at}} }`
+
+## AI inference config
+`drone.ai` in YAML controls rule-based inference defaults:
+- `enabled`: turn AI inference on/off.
+- `weights`: contribution of `stress_ratio`, `low_ndvi`, and `battery_penalty` to `risk_score`.
+- `thresholds`: cutoffs for `watch` and `critical`, plus `low_ndvi_mean` and `low_battery`.
+- `actions`: recommended action string mapped to each zone label.

@@ -37,7 +37,7 @@ python save_rgb_nir.py
 python -m raspberry.main --config /home/pi/agri-config.yaml \
   drone-cycle --rgb /home/pi/data/captures/rgb.jpg --nir /home/pi/data/captures/nir.jpg
 ```
-Publishes `{timestamp, telemetry, ndvi}` to the MQTT analysis topic.
+Publishes `{timestamp, telemetry, ndvi, ai}` to the MQTT analysis topic.
 
 ## 4) Run NDVI on waypoint arrival
 ```bash
